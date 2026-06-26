@@ -1,0 +1,46 @@
+[project]
+name = "devops-agent"
+version = "0.1.0"
+description = "A LangChain-based DevOps triage agent with custom tools (no MCP) for CI/CD, network, Kubernetes, Helm, AWS EKS/EC2, and observability triage."
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [{ name = "Platform Engineering" }]
+license = { text = "MIT" }
+dependencies = [
+    # Pinned to the 0.3.x line: langchain 1.x removed the classic
+    # AgentExecutor / create_tool_calling_agent API this agent is built on.
+    "langchain>=0.3,<1.0",
+    "langchain-core>=0.3,<1.0",
+    "langchain-anthropic>=0.3,<1.0",
+    "pydantic>=2.6",
+    "pydantic-settings>=2.2",
+    "httpx>=0.27",
+    "typer>=0.12",
+    "rich>=13.7",
+]
+
+[project.optional-dependencies]
+# Run the agent against Claude on Amazon Bedrock instead of the Anthropic API.
+bedrock = ["langchain-aws>=0.2,<1.0", "boto3>=1.34"]
+# Host the agent as a GitHub Copilot agent (extension) over HTTP.
+server = ["fastapi>=0.110", "uvicorn[standard]>=0.29", "cryptography>=42.0"]
+# Use GitHub Models (OpenAI-compatible) as the LLM — no Anthropic key / AWS needed.
+github = ["langchain-openai>=0.2,<1.0"]
+dev = ["pytest>=8.0", "ruff>=0.5", "mypy>=1.10", "fastapi>=0.110", "cryptography>=42.0", "langchain-openai>=0.2,<1.0"]
+
+[project.scripts]
+devops-agent = "devops_agent.cli:app"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/devops_agent"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

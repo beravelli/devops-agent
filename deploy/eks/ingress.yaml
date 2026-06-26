@@ -1,0 +1,29 @@
+---
+# AWS Load Balancer Controller ingress — exposes the agent publicly over HTTPS
+# so GitHub Copilot Chat can reach the /agent endpoint.
+# Prerequisites: AWS Load Balancer Controller installed, ACM cert for your domain.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: devops-agent
+  namespace: devops-agent
+  annotations:
+    kubernetes.io/ingress.class: alb
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTPS": 443}]'
+    # Replace with your ACM certificate ARN:
+    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:<REGION>:<ACCOUNT_ID>:certificate/<CERT_ID>
+    alb.ingress.kubernetes.io/healthcheck-path: /health
+spec:
+  rules:
+    - host: devops-agent.yourdomain.com   # replace with your domain
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: devops-agent
+                port:
+                  number: 80

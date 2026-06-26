@@ -223,6 +223,32 @@ def serve(
     uvicorn.run(application, host=host, port=port)
 
 
+@app.command("run-tool")
+def run_tool(
+    name: str = typer.Argument(..., help="Tool name, e.g. k8s_get_pods"),
+    input_json: str = typer.Argument("{}", help="JSON-encoded tool input, e.g. '{\"all_namespaces\":true}'"),
+) -> None:
+    """Call a single tool by name and print its output as plain text.
+
+    Used by the VS Code Chat Participant extension to execute individual tools
+    while letting Copilot's own model handle the reasoning loop.
+    """
+    from .tools import all_tools
+
+    tool_map = {t.name: t for t in all_tools()}
+    if name not in tool_map:
+        console.print(f"[red]Unknown tool: {name!r}[/red]")
+        console.print(f"Known tools: {', '.join(sorted(tool_map))}")
+        raise typer.Exit(1)
+    try:
+        parsed = json.loads(input_json)
+    except json.JSONDecodeError as exc:
+        console.print(f"[red]Invalid JSON input: {exc}[/red]")
+        raise typer.Exit(1)
+    result = tool_map[name].invoke(parsed)
+    print(result)
+
+
 @app.command()
 def version() -> None:
     """Print the version."""

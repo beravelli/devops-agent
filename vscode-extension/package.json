@@ -1,0 +1,60 @@
+{
+  "name": "devops-triage",
+  "displayName": "DevOps Triage Agent",
+  "description": "Local DevOps triage agent — Kubernetes, Helm, AWS, CI/CD, observability",
+  "version": "0.1.0",
+  "publisher": "your-publisher-id",
+  "engines": { "vscode": "^1.90.0" },
+  "categories": ["AI", "Other"],
+  "activationEvents": [],
+  "contributes": {
+    "chatParticipants": [
+      {
+        "id": "devops-triage.agent",
+        "name": "devops-triage",
+        "fullName": "DevOps Triage Agent",
+        "description": "Triage Kubernetes, Helm, AWS, CI/CD, and observability issues",
+        "isSticky": true,
+        "commands": [
+          { "name": "pods",    "description": "Check for pod issues across the cluster" },
+          { "name": "nodes",   "description": "Check node health and resource pressure" },
+          { "name": "helm",    "description": "Inspect Helm releases and history" },
+          { "name": "logs",    "description": "Fetch recent pod logs" },
+          { "name": "aws",     "description": "Check EC2 / EKS / CloudWatch status" },
+          { "name": "health",  "description": "Full cluster health overview" }
+        ]
+      }
+    ],
+    "configuration": {
+      "title": "DevOps Triage Agent",
+      "properties": {
+        "devopsTriage.agentPath": {
+          "type": "string",
+          "default": "devops-agent",
+          "description": "Path to the devops-agent binary. Use the full path if it is not on PATH, e.g. /Users/you/.local/bin/devops-agent or uv run devops-agent via a wrapper script."
+        },
+        "devopsTriage.projectPath": {
+          "type": "string",
+          "default": "",
+          "description": "Path to the devops-agent project (where .env lives). Defaults to the repo root if empty."
+        },
+        "devopsTriage.toolGroups": {
+          "type": "string",
+          "default": "kubernetes,helm,aws,prometheus,correlation",
+          "description": "Comma-separated tool groups to expose (overrides DEVOPS_AGENT_TOOL_GROUPS in .env)."
+        }
+      }
+    }
+  },
+  "main": "./out/extension.js",
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.90.0",
+    "typescript": "^5.4.0"
+  }
+}

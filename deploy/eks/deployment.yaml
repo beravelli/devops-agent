@@ -1,0 +1,102 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: devops-agent
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: devops-agent-secrets
+  namespace: devops-agent
+type: Opaque
+stringData:
+  # Replace with your GitHub PAT (models: read permission).
+  # In production, use External Secrets Operator or Sealed Secrets instead of
+  # storing the token directly here.
+  GITHUB_MODELS_TOKEN: "github_pat_REPLACE_ME"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: devops-agent-config
+  namespace: devops-agent
+data:
+  DEVOPS_AGENT_LLM_PROVIDER: "github"
+  DEVOPS_AGENT_ALLOW_MUTATIONS: "false"
+  DEVOPS_AGENT_ALLOW_EXEC: "true"
+  DEVOPS_AGENT_TOOL_GROUPS: "kubernetes,helm,aws,prometheus,correlation"
+  # Leave DEVOPS_AGENT_KUBE_CONTEXT empty — when running inside the cluster,
+  # kubectl uses the pod's service-account token automatically (in-cluster config).
+  DEVOPS_AGENT_KUBE_CONTEXT: ""
+  DEVOPS_AGENT_MAX_TOKENS: "4096"
+  # Set these if Prometheus / Grafana are reachable inside the cluster:
+  DEVOPS_AGENT_PROMETHEUS_URL: "http://prometheus-server.monitoring.svc.cluster.local"
+  DEVOPS_AGENT_GRAFANA_URL: ""
+  DEVOPS_AGENT_GRAFANA_TOKEN: ""
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: devops-agent
+  namespace: devops-agent
+  labels:
+    app: devops-agent
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: devops-agent
+  template:
+    metadata:
+      labels:
+        app: devops-agent
+    spec:
+      serviceAccountName: devops-agent
+      containers:
+        - name: devops-agent
+          image: <ACCOUNT_ID>.dkr.ecr.<REGION>.amazonaws.com/devops-agent:latest
+          ports:
+            - containerPort: 8000
+          envFrom:
+            - configMapRef:
+                name: devops-agent-config
+            - secretRef:
+                name: devops-agent-secrets
+          env:
+            # EKS_CLUSTERS is only needed if you want to triage OTHER clusters
+            # from this pod. Leave empty to use in-cluster config (this cluster).
+            - name: EKS_CLUSTERS
+              value: ""
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 250m
+              memory: 256Mi
+            limits:
+              cpu: 1000m
+              memory: 512Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: devops-agent
+  namespace: devops-agent
+spec:
+  selector:
+    app: devops-agent
+  ports:
+    - port: 80
+      targetPort: 8000
+  type: ClusterIP
